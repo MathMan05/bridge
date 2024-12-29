@@ -25,7 +25,7 @@ type config = {
 		database: string;
 	};
 };
-const config = JSON.parse(fs.readFileSync("./config.json", "utf-8")) as config;
+const config = JSON.parse(fs.readFileSync(__dirname + "/../config.json", "utf-8")) as config;
 //console.log(config);
 const bots = new Map<string, Bot>();
 

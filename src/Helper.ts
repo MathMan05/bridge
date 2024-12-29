@@ -12,7 +12,7 @@ export class Helper {
 			if (!fs.existsSync("internalstore.json")) {
 				fs.writeFileSync("internalstore.json", "0");
 			} else {
-				this.internalId = +fs.readFileSync("./internalstore.json");
+				this.internalId = +fs.readFileSync(__dirname + "/../internalstore.json");
 			}
 			//console.log(this.internalId);
 			const con = mysql.createConnection(sqlconnection);

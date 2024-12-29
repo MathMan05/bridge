@@ -48,3 +48,4 @@ This is a simple bot meant to make bridging easier for users, to use this, simpl
 	}
 }
 ```
+mysql is completly optional, it just provides as persistant mappings of ids, this bot will fall back to other methods if credtials are not provided

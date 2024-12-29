@@ -17,7 +17,7 @@ export type spacebarBotConf = {
 
 type config = {
 	bots: (discordBotConf | spacebarBotConf)[];
-	bridges: bridgeConfig[][];
+	bridges: {channels: bridgeConfig[]}[];
 	mysql: void | {
 		host: string;
 		user: string;
@@ -95,7 +95,7 @@ let bridgeID = 0;
 const bridgess = config.bridges.map((bridges) => {
 	const botarr: Bot[] = [];
 	let botBID = 0;
-	for (const bridge of bridges) {
+	for (const bridge of bridges.channels) {
 		const bot = bots.get(bridge.name);
 		if (bot) {
 			bot.addBridge(bridge, bridgeID, botBID);

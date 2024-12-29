@@ -15,28 +15,30 @@ This is a simple bot meant to make bridging easier for users, to use this, simpl
 		}
 	],
 	"bridges": [
-		[
-			{
-				"name": "Discord",
-				"guild": "guildid",
-				"channel": "channelid"
-			},
-			{
-				"name": "Discord",
-				"guild": "guildid",
-				"channel": "channelid"
-			},
-			{
-				"name": "Discord",
-				"guild": "guildid",
-				"channel": "channelid"
-			},
-			{
-				"name": "Spacebar",
-				"guild": "guildid",
-				"channel": "channelid"
-			}
-		]
+		{
+			"channels":[
+				{
+					"name": "Discord",
+					"guild": "guildid",
+					"channel": "channelid"
+				},
+				{
+					"name": "Discord",
+					"guild": "guildid",
+					"channel": "channelid"
+				},
+				{
+					"name": "Discord",
+					"guild": "guildid",
+					"channel": "channelid"
+				},
+				{
+					"name": "Spacebar",
+					"guild": "guildid",
+					"channel": "channelid"
+				}
+			]
+		}
 	],
 	"mysql": {
 		"host": "host",

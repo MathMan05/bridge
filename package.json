@@ -1,0 +1,30 @@
+{
+	"name": "bidgy",
+	"version": "0.2.0",
+	"description": "It's a bridge bot, what do you expect?",
+	"main": "dist/index.js",
+	"type": "module",
+	"scripts": {
+		"lint": "eslint .",
+		"build": "npx gulp",
+		"start": "node dist/index.js"
+	},
+	"author": "MathMan05",
+	"license": "GPL-3.0",
+	"dependencies": {
+		"@swc/core": "^1.10.1",
+		"chokidar": "^4.0.3",
+		"discord.js": "^14.16.3",
+		"mysql": "^2.18.1",
+		"prettier": "^3.4.2"
+	},
+	"prettier": {
+		"useTabs": true,
+		"printWidth": 100,
+		"semi": true,
+		"bracketSpacing": false
+	},
+	"devDependencies": {
+		"@types/mysql": "^2.15.26"
+	}
+}

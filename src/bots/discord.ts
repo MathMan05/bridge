@@ -83,7 +83,7 @@ class Discord implements Bot {
 	async messageEditConvert(message: DMessage | PartialMessage) {
 		//console.log(message);
 		if (!("author" in message) || message.author == null) return;
-		if (message.author.bot) return;
+		if (message.author.id == this.client?.user?.id) return;
 		if (!message.content && !message.attachments.size) return;
 		const bridge = this.bridges.get(message.channel.id);
 		if (bridge === undefined) return;
@@ -112,7 +112,7 @@ class Discord implements Bot {
 		}
 	}
 	async messageConvert(message: DMessage) {
-		if (message.author.bot) return;
+		if (message.author.id == this.client?.user?.id) return;
 		if (!message.content && !message.attachments.size) return;
 		const bridge = this.bridges.get(message.channel.id);
 		if (bridge === undefined) return;

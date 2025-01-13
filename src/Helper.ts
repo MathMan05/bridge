@@ -1,5 +1,11 @@
 import mysql from "mysql";
 import fs from "fs";
+
+import path from "path";
+import {fileURLToPath} from "url";
+const __filename = fileURLToPath(import.meta.url); // get the resolved path to the file
+const __dirname = path.dirname(__filename); // get the name of the directory
+
 export class Helper {
 	etimap = new Map<string, Map<number, Map<string, string>>>();
 	itemap = new Map<string, Map<number, Map<string, string>>>();
@@ -76,7 +82,10 @@ export class Helper {
 					console.log("done");
 					if (err) throw err;
 					console.log(result);
-					if (result.length == 0) res(null);
+					if (result.length == 0) {
+						res(null);
+						return;
+					}
 					res(result[0].eid as string);
 				},
 			);

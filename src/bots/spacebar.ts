@@ -11,6 +11,12 @@ class Spacebar extends Discord {
 	}
 	async createClient() {
 		const urls = await (await fetch(this.apiURL + "policies/instance/domains")).json();
+		if ((urls.apiEndpoint as string).endsWith("/v9")) {
+			const api = urls.apiEndpoint as string;
+			const l = api.split("/v9");
+			l.pop();
+			urls.apiEndpoint = l.join("/v9");
+		}
 		this.client = new Client({
 			intents: [
 				GatewayIntentBits.Guilds,

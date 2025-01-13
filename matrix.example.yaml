@@ -1,0 +1,26 @@
+{
+  "id": "mathbridge",
+  "namespaces": {
+    "aliases": [
+      {
+        "exclusive": true,
+        "regex": "#_mathbridge_.*:localhost:8008"
+      }
+    ],
+    "users": [
+      {
+        "exclusive": true,
+        "regex": "@_mathbridge_.*:localhost:8008"
+      }
+    ]
+  },
+  "protocols": [
+    "discord",
+    "spacebar"
+  ],
+  "rate_limited": false,
+  "sender_localpart": "_mathbridge_bot",
+  "url": "http://localhost:6693"a,
+  "as_token": "redacted",
+  "hs_token": "redacted"
+}

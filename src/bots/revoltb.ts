@@ -1,38 +1,24 @@
 import {Helper} from "../Helper.js";
-import {Client, GatewayIntentBits, Message as DMessage, PartialMessage} from "discord.js";
+import {Client, Message as DMessage} from "revolt.js";
 import {Bot, bridgeConfig, Message} from "./bota.js";
-import fs from "fs";
-class Discord implements Bot {
+import {revoltBotConf} from "../index.js";
+class Revolt implements Bot {
 	private readonly token: string;
 	readonly name: string;
 	readonly helper: Helper;
 	client?: Client;
 	newMessage?: (message: Message, bridgeId: number, bid: number) => void;
 	newDeleteMessage?: (messageID: string, bridgeID: number, botBID: number) => Promise<void>;
-	readonly userConcsent: boolean;
-	readonly bridgedUsers = new Set<string>();
-	constructor(info: {token: string; name: string; consent?: boolean}, helper: Helper) {
+	readonly url: string;
+	constructor(info: revoltBotConf, helper: Helper) {
 		this.token = info.token;
 		this.name = info.name;
 		this.helper = helper;
-		this.userConcsent = info.consent || false;
-		if (this.userConcsent) {
-			const dir = __dirname + "/../../config.json";
-			if (fs.existsSync(dir)) {
-				const messages = JSON.parse(fs.readFileSync(dir).toString());
-				this.bridgedUsers = new Set(messages as string[]);
-			}
-		}
+		this.url = info.url;
+		this.url ??= "https://revolt.chat";
 	}
 	async createClient() {
-		this.client = new Client({
-			intents: [
-				GatewayIntentBits.Guilds,
-				GatewayIntentBits.GuildMessages,
-				GatewayIntentBits.MessageContent,
-				GatewayIntentBits.GuildPresences,
-			],
-		});
+		this.client = new Client({});
 	}
 	async connect() {
 		return new Promise<void>(async (res) => {
@@ -41,12 +27,13 @@ class Discord implements Bot {
 			this.client.on("ready", () => {
 				res();
 			});
-			this.client.on("messageCreate", (message: DMessage) => this.messageConvert(message));
-			this.client.login(this.token);
-			this.client.on("messageDelete", (message) => {
-				this.messageDConvert(message.id, message.channel.id, message.author?.id || "");
+			this.client.on("messageCreate", (message) => this.messageConvert(message));
+			this.client.loginBot(this.token);
+			this.client.on("messageDelete", (m) => {
+				if (!m || !m.authorId) return;
+				this.messageDConvert(m.id, m.channelId, m.authorId);
 			});
-			this.client.on("messageUpdate", (_, message) => this.messageEditConvert(message));
+			this.client.on("messageUpdate", (message) => this.messageEditConvert(message));
 		});
 	}
 	/**
@@ -76,10 +63,20 @@ class Discord implements Bot {
 		//console.log(bid, BotBID);
 		if (cid === undefined) return;
 		//console.log(+cid[0]);
-		return +cid[0];
+		let build = 0;
+		for (const char of cid[0]) {
+			build *= 32;
+			build += "0123456789ABCDEFGHJKMNPQRSTVWXYZ".indexOf(char);
+			if (build >= Number.MAX_SAFE_INTEGER / 32) {
+				break;
+			}
+		}
+		return build;
 	}
 	async messageDConvert(messageId: string, channelId: string, aid: string) {
-		if (aid === this.client?.user?.id) return;
+		if (this.client?.user?.id == aid) {
+			return;
+		}
 		//console.log(messageId, channelId, "delete");
 		const bridge = this.bridges.get(channelId);
 		if (bridge === undefined) return;
@@ -92,29 +89,28 @@ class Discord implements Bot {
 			this.newDeleteMessage(iid, ...bridge);
 		}
 	}
-	async messageEditConvert(message: DMessage | PartialMessage) {
+	async messageEditConvert(message: DMessage) {
 		//console.log(message);
-		if (!("author" in message) || message.author == null) return;
-		if (message.author.id == this.client?.user?.id) return;
-		if (!message.content && !message.attachments.size) return;
-		const bridge = this.bridges.get(message.channel.id);
+		if (!this.client) return;
+		if (message.author?.id == this.client.user?.id) return;
+		if (!message.content && !message.attachments?.length) return;
+		const bridge = this.bridges.get(message.channelId);
 		if (bridge === undefined) return;
+		const author = message.author;
+		if (!author) return;
 		const cmessage: Message = {
-			username: message.author.username,
-			displayName: message.author.displayName,
+			username: author.username,
+			displayName: author.username,
 			contents: message.content || "",
-			attachments: [...message.attachments].map((_) => _[1].url),
-			replying: message.reference
-				? [
-						await this.convertExternalToInternal(
-							message.reference.messageId || "",
-							this.genUUID(...bridge),
-						),
-					]
+			attachments: (message.attachments || []).map((_) => _.url),
+			replying: message.replyIds
+				? await Promise.all(
+						message.replyIds.map((_) => this.convertExternalToInternal(_, this.genUUID(...bridge))),
+					)
 				: [],
 			id: (await this.convertExternalToInternal(message.id, this.genUUID(...bridge))) || "",
-			pfpSrc: message.author.avatarURL() || undefined,
-			platform: "discord",
+			pfpSrc: author.avatarURL || undefined,
+			platform: "revolt",
 		};
 		if (cmessage.id == "") {
 			return;
@@ -123,45 +119,30 @@ class Discord implements Bot {
 			this.onEditMessage(cmessage, ...bridge);
 		}
 	}
-	async syncAuthors() {
-		const dir = __dirname + "/../../config.json";
-		fs.writeFile(dir, JSON.stringify([...this.bridgedUsers]), console.log);
-	}
 	async messageConvert(message: DMessage) {
+		if (!message.author || !message.channel) return;
 		if (message.author.id == this.client?.user?.id) return;
-		if (this.userConcsent && !this.bridgedUsers.has(message.author.id)) {
-			if (message.content === "!bridge true") {
-				this.bridgedUsers.add(message.author.id);
-				this.syncAuthors();
-			} else {
-				return;
-			}
-		}
-		if (message.content === "!bridge false") {
-			this.bridgedUsers.delete(message.author.id);
-			this.syncAuthors();
-			return;
-		}
-		if (!message.content && !message.attachments.size) return;
+		if (!message.content && !message.attachments?.length) return;
 		const bridge = this.bridges.get(message.channel.id);
 		if (bridge === undefined) return;
 
 		const cmessage: Message = {
 			username: message.author.username,
-			displayName: message.author.displayName,
-			contents: message.content,
-			attachments: [...message.attachments].map((_) => _[1].url),
-			replying: message.reference
-				? [
-						await this.convertExternalToInternal(
-							message.reference.messageId || "",
-							this.genUUID(...bridge),
-						),
-					]
+			displayName: message.author.username,
+			contents: message.content || "",
+			attachments: (message.attachments || []).map((_) => _.url),
+			replying: message.replyIds?.length
+				? (
+						await Promise.all(
+							message.replyIds.map((_) =>
+								this.convertExternalToInternal(_, this.genUUID(...bridge)),
+							),
+						)
+					).filter((_) => _ !== null)
 				: [],
 			id: this.helper.createNewMessage(this.name, this.genUUID(...bridge) as number, message.id),
-			pfpSrc: message.author.avatarURL() || undefined,
-			platform: "discord",
+			pfpSrc: message.author.avatarURL || undefined,
+			platform: "revolt",
 		};
 
 		if (this.newMessage) {
@@ -179,36 +160,48 @@ class Discord implements Bot {
 			console.error("channel does not exist to this bot for some reason");
 			return;
 		}
-		if (!("send" in channel)) return;
-		if (!channel.isSendable) {
+		if (!channel.havePermission("SendMessage")) {
 			console.error("Can't send messages in the channel");
 			return;
 		}
-
-		const m = await channel.send(await this.messageToEmbed(message, bridgeID, BotBID));
-		return m.id;
+		try {
+			if (channel.havePermission("Masquerade")) {
+				const m = await channel.sendMessage(await this.messageToEmbed(message, bridgeID, BotBID));
+				return m.id;
+			} else {
+				const m = await channel.sendMessage("bot is missing permission Masquerade");
+				return m.id;
+			}
+		} catch (e) {
+			console.error(e);
+		}
+		return "";
 	}
-	async messageToEmbed(message: Message, bridgeID: number, BotBID: number) {
-		let replying = await this.convertInternalToExternal(
-			message.replying[0],
-			this.genUUID(bridgeID, BotBID),
-		);
-		return {
-			embeds: [
-				{
-					author: {
+	async messageToEmbed(message: Message, bridgeID: number, BotBID: number, edit = false) {
+		console.log("mte");
+		let replying = (
+			await Promise.all(
+				message.replying.map((_) =>
+					this.convertInternalToExternal(_, this.genUUID(bridgeID, BotBID)),
+				),
+			)
+		)
+			.filter((_) => _ != null)
+			.map((id) => {
+				return {id, mention: true};
+			});
+		return edit
+			? {
+					content: message.contents,
+				}
+			: {
+					masquerade: {
 						name: message.displayName,
-						icon_url: message.pfpSrc,
+						avatar: message.pfpSrc,
 					},
-					description: message.contents,
-				},
-			],
-			reply: replying
-				? {
-						messageReference: replying,
-					}
-				: undefined,
-		};
+					content: message.contents,
+					replies: replying,
+				};
 	}
 	async deleteMessage(messageID: string, bridgeID: number, BotBID: number): Promise<void> {
 		const uuid = this.genUUID(bridgeID, BotBID);
@@ -219,18 +212,14 @@ class Discord implements Bot {
 			if (!cmid) return;
 			const cid = cmid.get(BotBID);
 			if (!cid) return;
+
 			const channel = await this.client.channels.fetch(cid[0]);
 			if (!channel) return;
-			if ("send" in channel) {
-				try {
-					const message = await channel.messages.fetch(mid);
-					if (!message) return;
-					if (message.deletable) {
-						await message.delete();
-					}
-				} catch (e) {
-					return;
-				}
+
+			const message = await channel.fetchMessage(mid);
+			if (!message) return;
+			if (message.author?.id === this.client?.user?.id) {
+				await message.delete();
 			}
 		}
 	}
@@ -246,12 +235,11 @@ class Discord implements Bot {
 			if (!cid) return;
 			const channel = await this.client.channels.fetch(cid[0]);
 			if (!channel) return;
-			if ("send" in channel) {
-				const m = await channel.messages.fetch(mid);
-				if (!m) return;
-				if (m.editable) {
-					m.edit(await this.messageToEmbed(message, bridgeID, BotBID));
-				}
+
+			const m = await channel.fetchMessage(mid);
+			if (!m) return;
+			if (m.author?.id === this.client?.user?.id) {
+				m.edit(await this.messageToEmbed(message, bridgeID, BotBID, true));
 			}
 		}
 	}
@@ -265,4 +253,4 @@ class Discord implements Bot {
 	}
 }
 
-export {Discord};
+export {Revolt};

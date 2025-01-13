@@ -16,8 +16,11 @@
 		"@swc/core": "^1.10.1",
 		"chokidar": "^4.0.3",
 		"discord.js": "^14.16.3",
+		"irc-framework": "^4.14.0",
+		"matrix-appservice-bridge": "^10.3.1",
 		"mysql": "^2.18.1",
-		"prettier": "^3.4.2"
+		"prettier": "^3.4.2",
+		"revolt.js": "^7.0.5"
 	},
 	"prettier": {
 		"useTabs": true,

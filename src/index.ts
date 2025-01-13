@@ -1,22 +1,54 @@
 import {Bot, bridgeConfig, Message} from "./bots/bota.js";
 import {Discord} from "./bots/discord.js";
+import {Revolt} from "./bots/revoltb.js";
 import {Spacebar} from "./bots/spacebar.js";
 import {Helper} from "./Helper.js";
 import fs from "fs";
+
+import path from "path";
+import {fileURLToPath} from "url";
+const __filename = fileURLToPath(import.meta.url); // get the resolved path to the file
+const __dirname = path.dirname(__filename); // get the name of the directory
+
 export type discordBotConf = {
 	type: "discord";
 	name: string;
 	token: string;
+	consent?: boolean;
 };
 export type spacebarBotConf = {
 	type: "spacebar";
 	name: string;
 	token: string;
 	url: string;
+	consent?: boolean;
 };
-
+export type matrixBotConf = {
+	type: "matrix";
+	name: string;
+	yaml: string;
+	homeServerURL: string;
+	domain: string;
+};
+export type ircBotConf = {
+	type: "irc";
+	name: string;
+	url: string;
+	port: number;
+	nick: string;
+	acount?: {
+		account: string;
+		password: string;
+	};
+};
+export type revoltBotConf = {
+	type: "revolt";
+	name: string;
+	token: string;
+	url: string;
+};
 type config = {
-	bots: (discordBotConf | spacebarBotConf)[];
+	bots: (discordBotConf | spacebarBotConf | matrixBotConf | revoltBotConf | ircBotConf)[];
 	bridges: {channels: bridgeConfig[]}[];
 	mysql: void | {
 		host: string;
@@ -83,6 +115,16 @@ for (const bot of config.bots) {
 	} else if (bot.type === "spacebar") {
 		boty = new Spacebar(bot, helper);
 		bots.set(bot.name, boty);
+	} else if (bot.type === "matrix") {
+		//new Matrix(bot, helper).connect();
+		//bots.set(bot.name, boty);
+		//this is just the worst, another day maybe.
+	} else if (bot.type === "revolt") {
+		boty = new Revolt(bot, helper);
+		bots.set(bot.name, boty);
+	} else if (bot.type === "irc") {
+		//boty = new Irc(bot, helper);
+		//bots.set(bot.name, boty);
 	}
 	if (boty) {
 		boty.newMessage = onMessage;

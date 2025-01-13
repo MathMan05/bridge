@@ -17,7 +17,7 @@ class Discord implements Bot {
 		this.helper = helper;
 		this.userConcsent = info.consent || false;
 		if (this.userConcsent) {
-			const dir = __dirname + "/../../config.json";
+			const dir = __dirname + "/../../" + this.name + ".json";
 			if (fs.existsSync(dir)) {
 				const messages = JSON.parse(fs.readFileSync(dir).toString());
 				this.bridgedUsers = new Set(messages as string[]);
@@ -124,7 +124,7 @@ class Discord implements Bot {
 		}
 	}
 	async syncAuthors() {
-		const dir = __dirname + "/../../config.json";
+		const dir = __dirname + "/../../" + this.name + ".json";
 		fs.writeFile(dir, JSON.stringify([...this.bridgedUsers]), console.log);
 	}
 	async messageConvert(message: DMessage) {
